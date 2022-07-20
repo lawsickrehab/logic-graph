@@ -14,8 +14,10 @@ class filter:
         '原則上.+?例外.+?。'
     ]
     
+    def selectRegx(self):
+        for idx, regx in enumerate(self.regxs):
+            print(f'{idx}: {regx}')
+
     def find(self, regx, text: str):
         return re.findall(regx, text)
 
-
-# hell
