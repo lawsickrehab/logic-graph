@@ -1,6 +1,5 @@
 from PyPDF2 import PdfReader
 from os import listdir
-from os.path import isfile, join
 missingPageslist = []
 class pdfHandler:
     def pdf2txt(filename):
