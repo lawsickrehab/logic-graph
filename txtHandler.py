@@ -1,3 +1,5 @@
+SRCPATH = "txt"
+DISTPATH = "txtPunctuationMarks"
 from os import listdir
 class pdfHandler:
     def halfWidth2FullWidth(str):
@@ -11,15 +13,15 @@ class pdfHandler:
         str = str.replace(':', '：')
         return str
     def halfWidth2FullWidthFile(filename):
-        ifs = open("dist/" + filename, "r", encoding="UTF-8")
+        ifs = open(SRCPATH + "/" + filename, "r", encoding="UTF-8")
         content = ifs.read()
         content = pdfHandler.halfWidth2FullWidth(content)
         ifs.close()
-        ofs = open("dist/" + filename, "w+", encoding="UTF-8")
+        ofs = open(DISTPATH + "/" + filename, "w+", encoding="UTF-8")
         ofs.write(content)
         ofs.close()
     def halfWidth2FullWidthAll():
-        filenames = listdir("dist")
+        filenames = listdir(SRCPATH)
         for i in range(len(filenames)):
             filename = filenames[i]
             print(f"processing file [{i + 1}/{len(filenames)}]:", filename)

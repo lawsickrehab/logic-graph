@@ -1,5 +1,7 @@
 from PyPDF2 import PdfReader
 from os import listdir
+SRCPATH = "pdf"
+DISTPATH = "txt"
 missingPageslist = []
 class pdfHandler:
     def pdf2txt(filename):
@@ -21,12 +23,12 @@ class pdfHandler:
         return texts
     
     def exec():
-        filenames = listdir("src")
+        filenames = listdir(SRCPATH)
         for i in range(len(filenames)):
             filename = filenames[i]
             print(f"processing file [{i + 1}/{len(filenames)}]:", filename)
             context = pdfHandler.pdf2txt(filename)
-            f = open("dist/" + filename.replace(".pdf", ".txt"), "w+", encoding="UTF-8")
+            f = open(txtPunctuationMarks + "/" + filename.replace(".pdf", ".txt"), "w+", encoding="UTF-8")
             f.write(context)
             f.close()
         print("Finished!")
