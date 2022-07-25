@@ -13,7 +13,9 @@ class API:
         apikey = accountDict["apikey"]
         self.atc = Articut(username=username, apikey=apikey)
 
-        self.regxs1 = map(re.compile, ['<RANGE_locality>上</RANGE_locality><ACTION_verb>開</ACTION_verb><FUNC_inner>所</FUNC_inner><ACTION_verb>謂</ACTION_verb>.*?<FUNC_inter>即</FUNC_inter><MODAL>該</MODAL><ACTION_verb>當</ACTION_verb><FUNC_inner>之</FUNC_inner>'
+        self.regxs1 = map(re.compile, [
+            '<RANGE_locality>上</RANGE_locality><ACTION_verb>開</ACTION_verb><FUNC_inner>所</FUNC_inner><ACTION_verb>謂</ACTION_verb>.*?<FUNC_inter>即</FUNC_inter><MODAL>該</MODAL><ACTION_verb>當</ACTION_verb><FUNC_inner>之</FUNC_inner>',
+            '<ACTION_verb>按</ACTION_verb>.*?，<FUNC_inter>而</FUNC_inter>.*?。'
         ])
 
     def parse(self, str: str, level: str ='lv2'):
@@ -36,8 +38,11 @@ class API:
                     ans.append(word["text"])
         return ans
 
-    def getResultWithTags(self):
-        return ''.join(self.result["result_pos"])
+    def getResultWithTags(self, join: bool =False):
+        if join:
+            return ''.join(self.result["result_pos"])
+        else:
+            return self.result["result_pos"]
 
     def removeTags(self, preString: str):
         regx = "<[^<]*?>"
@@ -45,17 +50,20 @@ class API:
 
     def getLawReason(self):
         for regx in self.regxs1:
-            for match in regx.findall(self.getResultWithTags()):
+            for match in regx.findall(self.getResultWithTags(join=True)):
                 print(self.removeTags(match))
             
     
                 
 #%%
 api = API()
-with open("dist/最高法院刑事具有參考價值之裁判要旨暨裁判全文（109年度11月）.txt") as file:
-    file.read(1177)
-    testStr = file.read(2278)
+with open("test.txt") as file:
+    testStr = file.read()
 api.parse(testStr)
 
 #%%
 api.getLawReason()
+
+# %%
+api.getResultWithTags(True)
+# %%
