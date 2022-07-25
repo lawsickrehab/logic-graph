@@ -1,7 +1,9 @@
+#%%
 from ArticutAPI import Articut
-from pprint import pprint
 import json
+import re
 
+#%%
 class API:
     def __init__(self) -> None:
         with open("account.json") as file:
@@ -10,6 +12,9 @@ class API:
         username = accountDict["email"]
         apikey = accountDict["apikey"]
         self.atc = Articut(username=username, apikey=apikey)
+
+        self.regxs1 = map(re.compile, ['<RANGE_locality>上</RANGE_locality><ACTION_verb>開</ACTION_verb><FUNC_inner>所</FUNC_inner><ACTION_verb>謂</ACTION_verb>.*?<FUNC_inter>即</FUNC_inter><MODAL>該</MODAL><ACTION_verb>當</ACTION_verb><FUNC_inner>之</FUNC_inner>'
+        ])
 
     def parse(self, str: str, level: str ='lv2'):
         self.result = self.atc.parse(str, level=level, chemicalBOOL=False)
@@ -30,12 +35,27 @@ class API:
                 if word["pos"] == attribute and word["pos"] not in ans:
                     ans.append(word["text"])
         return ans
-                
 
+    def getResultWithTags(self):
+        return ''.join(self.result["result_pos"])
+
+    def removeTags(self, preString: str):
+        regx = "<[^<]*?>"
+        return re.sub(regx, '', preString)
+
+    def getLawReason(self):
+        for regx in self.regxs1:
+            for match in regx.findall(self.getResultWithTags()):
+                print(self.removeTags(match))
+            
+    
+                
+#%%
 api = API()
-with open("dist/101年度刑事具有參考價值之裁判要旨暨裁判全文-1.txt") as file:
-    file.read(14688)
-    testStr = file.read(768)
-print(testStr)
-api.parse(testStr, level='lv2')
-print(api.atc.getPersonLIST(api.result))
+with open("dist/最高法院刑事具有參考價值之裁判要旨暨裁判全文（109年度11月）.txt") as file:
+    file.read(1177)
+    testStr = file.read(2278)
+api.parse(testStr)
+
+#%%
+api.getLawReason()
