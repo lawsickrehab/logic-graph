@@ -1,5 +1,6 @@
 SRCPATH = "txtPunctuationMarks"
 DISTPATH = "txtPunctuationMarks"
+
 from os import listdir
 class pdfHandler:
     def halfWidth2FullWidth(str):

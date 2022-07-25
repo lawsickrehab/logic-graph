@@ -1,7 +1,9 @@
 from PyPDF2 import PdfReader
 from os import listdir
+
 SRCPATH = "pdf"
 DISTPATH = "txt"
+
 missingPageslist = []
 class pdfHandler:
     def pdf2txt(filename):
