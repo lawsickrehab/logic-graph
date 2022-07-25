@@ -15,7 +15,8 @@ class API:
 
         self.regxs1 = map(re.compile, [
             '<RANGE_locality>上</RANGE_locality><ACTION_verb>開</ACTION_verb><FUNC_inner>所</FUNC_inner><ACTION_verb>謂</ACTION_verb>.*?<FUNC_inter>即</FUNC_inter><MODAL>該</MODAL><ACTION_verb>當</ACTION_verb><FUNC_inner>之</FUNC_inner>',
-            '<ACTION_verb>按</ACTION_verb>.*?，<FUNC_inter>而</FUNC_inter>.*?。'
+            '<ACTION_verb>按</ACTION_verb>.*?，<FUNC_inter>而</FUNC_inter>.*?。',
+            '<MODIFIER>固然</MODIFIER>.*?<FUNC_inter>然</FUNC_inter>.*?<FUNC_inner>自</FUNC_inner>.*?。'
         ])
 
     def parse(self, str: str, level: str ='lv2'):
