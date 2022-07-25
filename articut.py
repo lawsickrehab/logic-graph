@@ -57,22 +57,3 @@ class API:
     def getNouns(self) -> list:
         return self.atc.getNounStemLIST(self.result)
     
-
-            
-    
-                
-#%%
-api = API()
-with open("test.txt") as file:
-    testStr = file.read()
-api.parse(testStr)
-
-#%%
-api.getLawReason()
-
-# %%
-api.getResultWithTags(True)
-
-# %%
-print(api.atc.getNounStemLIST(api.result))
-# %%
