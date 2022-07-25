@@ -53,6 +53,11 @@ class API:
         for regx in self.regxs1:
             for match in regx.findall(self.getResultWithTags(join=True)):
                 print(self.removeTags(match))
+
+    def getNouns(self) -> list:
+        return self.atc.getNounStemLIST(self.result)
+    
+
             
     
                 
@@ -67,4 +72,7 @@ api.getLawReason()
 
 # %%
 api.getResultWithTags(True)
+
+# %%
+print(api.atc.getNounStemLIST(api.result))
 # %%
