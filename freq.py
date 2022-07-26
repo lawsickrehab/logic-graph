@@ -4,11 +4,15 @@ from articut import API
 import json
 
 #%%
+# initilize variables
 api = API()
 folderPath = 'judgements/司法院－刑事補償_刑事'
 textFiles = listdir(folderPath)
 cache = {}
+
 #%%
+# Query API and store to cache
+# TODO: Make it multi thread to speed up
 countProgress = 0
 for textFile in textFiles:
     countProgress += 1
@@ -25,8 +29,7 @@ for textFile in textFiles:
         cache[textFile] = api.getNouns()
 
 # %%
-print(cache)
-# %%
+# Calc the frequency of nouns from cache
 lawNounCount = {}
 for fileName, sentences in cache.items():
     print(fileName, sentences)
@@ -53,6 +56,7 @@ for fileName, sentences in cache.items():
 
 print(lawNounCount)
 # %%
+# Something can sort dictionary
 {k: v for k, v in sorted(nounCount.items(), key=lambda item: item[1])}
 
 
@@ -61,11 +65,13 @@ print(lawNounCount)
 
 
 # %%
+# Save cache to cache.json
 def saveCache(cache) -> None:
     with open('cache.json', 'w') as file:
         json.dump(cache, file)
 saveCache(cache)
 # %%
+# Load cache from cache.json
 def loadCache() -> dict:
     with open('cache.json', 'r') as file:
         return json.loads(file.read())
