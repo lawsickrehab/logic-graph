@@ -1,17 +1,21 @@
 #%%
 from os import listdir
 from articut import API
+import json
 
 #%%
 api = API()
-folderPath = 'judges/_auto/最高法院刑事具有參考價值之裁判要旨暨裁判全文（109年度11月）'
+folderPath = 'judgements/司法院－刑事補償_刑事'
 textFiles = listdir(folderPath)
 cache = {}
 #%%
+countProgress = 0
 for textFile in textFiles:
+    countProgress += 1
+    print(f'{folderPath}/{textFile}', f'{countProgress}/{len(textFiles)}')
     with open(f'{folderPath}/{textFile}') as file:
-        judgements = file.read()
-        api.parse(judgements)
+        judgements = json.loads(file.read())
+        api.parse(judgements["judgement"])
         cache[textFile] = api.getNouns()
 
 # %%
