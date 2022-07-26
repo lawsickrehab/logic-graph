@@ -32,7 +32,7 @@ for textFile in textFiles:
 # Calc the frequency of nouns from cache
 lawNounCount = {}
 for fileName, sentences in cache.items():
-    print(fileName, sentences)
+    print(fileName)
     if sentences == None:
         continue
     with open(f'{folderPath}/{textFile}') as file:
@@ -54,10 +54,15 @@ for fileName, sentences in cache.items():
                 else:
                     lawNounCount[key][noun[-1]] += 1
 
-print(lawNounCount)
+# print(lawNounCount)
+print(len(lawNounCount))
 # %%
 # Something can sort dictionary
-{k: v for k, v in sorted(nounCount.items(), key=lambda item: item[1])}
+for law, nouns in lawNounCount.items():
+    test = sorted(nouns.items(), key=lambda item: item[1], reverse=True)
+    print(law)
+    print(test[0:10])
+    
 
 
 
