@@ -1,32 +1,66 @@
 #%%
-from os import listdir
+import os, time
 from articut import API
 import json
+import threading
+import queue
 
 #%%
-# initilize variables
-api = API()
-folderPath = 'judgements/司法院－刑事補償_刑事'
-textFiles = listdir(folderPath)
+# initilize
+lock = threading.RLock()
+threadNum = 12
+
+print('Loading all files...')
+rootFolderPath = 'judgements'
+textFiles = queue.Queue()
+for path, subdirs, files in os.walk(rootFolderPath):
+    for name in files:
+        if name[-5:] == '.json':
+            textFiles.put(os.path.join(path, name))
+print(f'{textFiles.qsize()} files loaded.')
+
+#%%
 cache = {}
 
 #%%
-# Query API and store to cache
-# TODO: Make it multi thread to speed up
-countProgress = 0
-for textFile in textFiles:
-    countProgress += 1
-    print(f'{folderPath}/{textFile}', f'{countProgress}/{len(textFiles)}')
-
-    if textFile in cache:
-        continue
-    if textFile[-5:] != '.json':
-        continue
-
-    with open(f'{folderPath}/{textFile}') as file:
-        judgements = json.loads(file.read())
+# Function to query API
+def queryAPI():
+    api = API()
+    while True:
+        textFile = textFiles.get()
+        with lock:
+            if textFile in cache:
+                textFiles.task_done()
+                continue
+        with open(textFile) as file:
+            judgements = json.loads(file.read())
         api.parse(judgements["judgement"])
-        cache[textFile] = api.getNouns()
+        with lock:
+            cache[textFile] = api.getNouns()
+        textFiles.task_done()
+
+# Function to show process and calcuate reamining time
+def progress():
+    startTime = time.time()
+    allFilesNum = textFiles.qsize()
+    while textFiles.qsize() > 0:
+        remainingFilesNum = textFiles.qsize()
+        usedTime = time.time() - startTime
+        processedFilesNum = allFilesNum - remainingFilesNum
+        ETR = (usedTime / processedFilesNum) * remainingFilesNum / 60 if processedFilesNum > 0 else 'inf' 
+        print(f'{processedFilesNum}/{allFilesNum}, ETR: {ETR} mins.')
+        time.sleep(5)
+
+#%%
+# Query API and store to cache
+print(f'Start querying with {threadNum} threads.')
+
+threading.Thread(target=progress, daemon=True).start()
+for i in range(threadNum):
+    threading.Thread(target=queryAPI, daemon=True).start()
+
+textFiles.join()
+
 
 # %%
 # Calc the frequency of nouns from cache
@@ -55,7 +89,7 @@ for fileName, sentences in cache.items():
                     lawNounCount[key][noun[-1]] += 1
 
 # print(lawNounCount)
-print(len(lawNounCount))
+# print(len(lawNounCount))
 # %%
 # Something can sort dictionary
 for law, nouns in lawNounCount.items():
