@@ -10,12 +10,18 @@ import queue
 lock = threading.RLock()
 threadNum = 12
 
+print('Loading featured list...')
+with open('Featured.txt') as file:
+    data = file.readlines()
+    featured = [i.strip() for i in data]
+
+#%%
 print('Loading all files...')
 rootFolderPath = 'judgements'
 textFiles = queue.Queue()
 for path, subdirs, files in os.walk(rootFolderPath):
     for name in files:
-        if name[-5:] == '.json':
+        if name[-5:] == '.json' and name in featured:
             textFiles.put(os.path.join(path, name))
 print(f'{textFiles.qsize()} files loaded.')
 
@@ -69,7 +75,7 @@ for fileName, sentences in cache.items():
     print(fileName)
     if sentences == None:
         continue
-    with open(f'{folderPath}/{textFile}') as file:
+    with open(fileName) as file:
         judgements = json.loads(file.read())
     relatedLaws = judgements['relatedIssues']
     relatedKeys = []
@@ -92,13 +98,16 @@ for fileName, sentences in cache.items():
 # print(len(lawNounCount))
 # %%
 # Something can sort dictionary
+freqNouns = {}
 for law, nouns in lawNounCount.items():
     test = sorted(nouns.items(), key=lambda item: item[1], reverse=True)
-    print(law)
-    print(test[0:10])
+    freqNouns[law] = test[0:50]
+
+with open('freq.json', 'w') as file:
+    json.dump(freqNouns, file)
     
 
-
+print('Output Saved')
 
 
 
