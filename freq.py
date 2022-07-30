@@ -1,4 +1,5 @@
 #%%
+from genericpath import isfile
 import os, time
 from articut import API
 import json
@@ -8,7 +9,7 @@ import queue
 #%%
 # initilize
 lock = threading.RLock()
-threadNum = 12
+threadNum = 6
 
 print('Loading featured list...')
 with open('Featured.txt') as file:
@@ -18,21 +19,39 @@ with open('Featured.txt') as file:
 #%%
 print('Loading all files...')
 rootFolderPath = 'judgements'
-textFiles = queue.Queue()
-for path, subdirs, files in os.walk(rootFolderPath):
-    for name in files:
-        if name[-5:] == '.json' and name in featured:
-            textFiles.put(os.path.join(path, name))
-print(f'{textFiles.qsize()} files loaded.')
+allFiles = {}
+for folder in os.listdir(rootFolderPath):
+    if os.path.isdir(f'{rootFolderPath}/{folder}'):
+        allFiles[folder] = []
+        for file in os.listdir(f'{rootFolderPath}/{folder}'):
+            if os.path.isfile(f'{rootFolderPath}/{folder}/{file}') and file[-5:] == '.json':
+                allFiles[folder].append(file)
 
-#%%
-cache = {}
+foundNum = 0
+for folder, files in allFiles.items():
+    foundNum += len(files)
+print(f'{foundNum} files founded.')
+
+# %%
+# Save cache to cache.json
+def saveCache(cache, subTitle) -> None:
+    with open(f'cache/cache-{subTitle}.json', 'w') as file:
+        json.dump(cache, file, ensure_ascii=False)
+
+# %%
+# Load cache from cache.json
+def loadCache(subTitle) -> dict:
+    if not os.path.isfile(f'cache/cache-{subTitle}.json'):
+        saveCache({}, subTitle)
+
+    with open(f'cache/cache-{subTitle}.json', 'r') as file:
+        return json.loads(file.read())
 
 #%%
 # Function to query API
-def queryAPI():
+def queryAPI(threadNum):
     api = API()
-    while True:
+    while textFiles.qsize() > 0:
         textFile = textFiles.get()
         with lock:
             if textFile in cache:
@@ -40,32 +59,74 @@ def queryAPI():
                 continue
         with open(textFile) as file:
             judgements = json.loads(file.read())
-        api.parse(judgements["judgement"])
+        while True:
+            api.parse(judgements["judgement"])
+            try:
+                dict(api.result)
+            except:
+                continue
+            break
         with lock:
-            cache[textFile] = api.getNouns()
+            cache[textFile] = api.result
         textFiles.task_done()
+    print(f'Thread {threadNum} stopped.')
 
 # Function to show process and calcuate reamining time
-def progress():
+def progress(event: threading.Event):
     startTime = time.time()
     allFilesNum = textFiles.qsize()
-    while textFiles.qsize() > 0:
+    while not event.is_set():
         remainingFilesNum = textFiles.qsize()
         usedTime = time.time() - startTime
         processedFilesNum = allFilesNum - remainingFilesNum
         ETR = (usedTime / processedFilesNum) * remainingFilesNum / 60 if processedFilesNum > 0 else 'inf' 
         print(f'{processedFilesNum}/{allFilesNum}, ETR: {ETR} mins.')
         time.sleep(5)
+    print('Progress stopped.')
+
+def autoSave(cache, folder, event: threading.Event):
+    counter = 0
+    while not event.is_set():
+        if counter > 60:
+            with lock:
+                saveCache(cache, folder)
+            print('Auto saved.')
+            counter = 0
+        time.sleep(1)
+        counter += 1
+    print('AutoSave stopped.')
 
 #%%
 # Query API and store to cache
-print(f'Start querying with {threadNum} threads.')
+for folder, files in allFiles.items():
+    print(f'Loading files under {folder} into queue')
+    textFiles = queue.Queue()
+    for file in files:
+        textFiles.put(f'{rootFolderPath}/{folder}/{file}')
 
-threading.Thread(target=progress, daemon=True).start()
-for i in range(threadNum):
-    threading.Thread(target=queryAPI, daemon=True).start()
+    print(f'Loading cache for {folder}')
+    cache = loadCache(folder)
 
-textFiles.join()
+    event = threading.Event()
+
+    print(f'Start querying with {threadNum} threads.')
+    tProgress = threading.Thread(target=progress, args=(event,), daemon=True)
+    tAutoSave = threading.Thread(target=autoSave, args=(cache, folder, event,), daemon=True)
+    tProgress.start()
+    tAutoSave.start()
+    for i in range(threadNum):
+        threading.Thread(target=queryAPI, args=(i,), daemon=True).start()
+
+    textFiles.join()
+
+    event.set()
+    tProgress.join()
+    tAutoSave.join()
+
+    with lock:
+        saveCache(cache, folder)
+    
+    print(f'Files under folder {folder} successfully saved to cache file.')
 
 
 # %%
@@ -112,16 +173,4 @@ print('Output Saved')
 
 
 
-# %%
-# Save cache to cache.json
-def saveCache(cache) -> None:
-    with open('cache.json', 'w') as file:
-        json.dump(cache, file)
-saveCache(cache)
-# %%
-# Load cache from cache.json
-def loadCache() -> dict:
-    with open('cache.json', 'r') as file:
-        return json.loads(file.read())
-cache = loadCache()
 # %%
