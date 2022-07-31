@@ -1,10 +1,10 @@
 #%%
-from genericpath import isfile
 import os, time
 from articut import API
 import json
 import threading
 import queue
+import re
 
 #%%
 # initilize
@@ -40,12 +40,19 @@ def saveCache(cache, subTitle) -> None:
 
 # %%
 # Load cache from cache.json
-def loadCache(subTitle) -> dict:
-    if not os.path.isfile(f'cache/cache-{subTitle}.json'):
-        saveCache({}, subTitle)
+def loadCache(subTitle):
+    done = set()
+    files = os.listdir('cache')
+    for file in files:
+        if os.path.isfile(f'cache/{file}') and len(re.findall(f'cache-{subTitle}-[0-9]+\.json', file)) == 1:
+            with open(f'cache/{file}') as f:
+                cachedNames = json.loads(f.read())
+            for cachedName in cachedNames:
+                done.add(cachedName)
+            if len(cachedNames) < 1000:
+                cache = cachedNames.copy()
+    return cache, done
 
-    with open(f'cache/cache-{subTitle}.json', 'r') as file:
-        return json.loads(file.read())
 
 #%%
 # Function to query API
@@ -54,7 +61,7 @@ def queryAPI(threadNum):
     while textFiles.qsize() > 0:
         textFile = textFiles.get()
         with lock:
-            if textFile in cache:
+            if textFile in done:
                 textFiles.task_done()
                 continue
         with open(textFile) as file:
@@ -68,6 +75,7 @@ def queryAPI(threadNum):
             break
         with lock:
             cache[textFile] = api.result
+            done.append(textFile)
         textFiles.task_done()
     print(f'Thread {threadNum} stopped.')
 
@@ -106,7 +114,7 @@ for folder, files in allFiles.items():
         textFiles.put(f'{rootFolderPath}/{folder}/{file}')
 
     print(f'Loading cache for {folder}')
-    cache = loadCache(folder)
+    cache, done = loadCache(folder)
 
     event = threading.Event()
 
