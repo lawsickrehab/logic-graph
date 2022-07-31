@@ -10,6 +10,8 @@ import re
 # initilize
 lock = threading.RLock()
 threadNum = 6
+cacheSize = 1000
+autoSaveDelay = 180
 
 print('Loading featured list...')
 with open('Featured.txt') as file:
@@ -34,13 +36,36 @@ print(f'{foundNum} files founded.')
 
 # %%
 # Save cache to cache.json
-def saveCache(cache, subTitle) -> None:
-    with open(f'cache/cache-{subTitle}.json', 'w') as file:
-        json.dump(cache, file, ensure_ascii=False)
+# TODO: the function must run frequent enough in order to have correct file index
+def saveCache(cache: dict, done: set, subTitle: str) -> None:
+    with lock:
+        tCache = cache.copy()
+    
+    wCache = {}
+    deleteCache = []
+    fileIndex = int(len(done) / cacheSize)
+    if len(tCache) > cacheSize:
+        storedNum = 0
+        fileIndex -= 1
+        for fileName, result in tCache.items():
+            if storedNum < cacheSize:
+                wCache[fileName] = result
+                deleteCache.append(fileName)
+            storedNum += 1
+    else:
+        wCache = tCache.copy()
 
+    with lock:
+        for fileName in deleteCache:
+            del cache[fileName]
+    
+    with open(f'cache/cache-{subTitle}-{fileIndex}.json', 'w') as file:
+        json.dump(wCache, file, ensure_ascii=False)
+    
 # %%
 # Load cache from cache.json
 def loadCache(subTitle):
+    cache = {}
     done = set()
     files = os.listdir('cache')
     for file in files:
@@ -56,7 +81,7 @@ def loadCache(subTitle):
 
 #%%
 # Function to query API
-def queryAPI(threadNum):
+def queryAPI(cache: dict, done: set, threadNum):
     api = API()
     while textFiles.qsize() > 0:
         textFile = textFiles.get()
@@ -75,7 +100,7 @@ def queryAPI(threadNum):
             break
         with lock:
             cache[textFile] = api.result
-            done.append(textFile)
+            done.add(textFile)
         textFiles.task_done()
     print(f'Thread {threadNum} stopped.')
 
@@ -92,17 +117,15 @@ def progress(event: threading.Event):
         time.sleep(5)
     print('Progress stopped.')
 
-def autoSave(cache: dict, folder, event: threading.Event):
-    counter = 0
+def autoSave(cache: dict, done: set, folder, event: threading.Event):
+    tCounter = 0
     while not event.is_set():
-        if counter > 180:
-            with lock:
-                cacheCP = cache.copy()
-            saveCache(cacheCP, folder)
+        if tCounter > autoSaveDelay:
+            saveCache(cache, done, folder)
             print('Auto saved.')
-            counter = 0
+            tCounter = 0
         time.sleep(1)
-        counter += 1
+        tCounter += 1
     print('AutoSave stopped.')
 
 #%%
@@ -120,11 +143,11 @@ for folder, files in allFiles.items():
 
     print(f'Start querying with {threadNum} threads.')
     tProgress = threading.Thread(target=progress, args=(event,), daemon=True)
-    tAutoSave = threading.Thread(target=autoSave, args=(cache, folder, event,), daemon=True)
+    tAutoSave = threading.Thread(target=autoSave, args=(cache, done, folder, event,), daemon=True)
     tProgress.start()
     tAutoSave.start()
     for i in range(threadNum):
-        threading.Thread(target=queryAPI, args=(i,), daemon=True).start()
+        threading.Thread(target=queryAPI, args=(cache, done, i,), daemon=True).start()
 
     textFiles.join()
 
@@ -136,7 +159,6 @@ for folder, files in allFiles.items():
         saveCache(cache, folder)
     
     print(f'Files under folder {folder} successfully saved to cache file.')
-
 
 # %%
 # Calc the frequency of nouns from cache
