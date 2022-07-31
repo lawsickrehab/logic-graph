@@ -84,12 +84,13 @@ def progress(event: threading.Event):
         time.sleep(5)
     print('Progress stopped.')
 
-def autoSave(cache, folder, event: threading.Event):
+def autoSave(cache: dict, folder, event: threading.Event):
     counter = 0
     while not event.is_set():
-        if counter > 60:
+        if counter > 180:
             with lock:
-                saveCache(cache, folder)
+                cacheCP = cache.copy()
+            saveCache(cacheCP, folder)
             print('Auto saved.')
             counter = 0
         time.sleep(1)
