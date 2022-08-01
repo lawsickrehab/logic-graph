@@ -1,8 +1,12 @@
-from os import listdir, mkdir
+from os import listdir, mkdir, path
 import json
 class jsonHandler:
     data = {}
+    filenamePrefix = ""
     def load(filePath):
+        srcFilename = filePath.split("/")[-1]
+        jsonHandler.filenamePrefix = srcFilename[:srcFilename.rfind(".")]
+        print(f"Set filename Prefix to {jsonHandler.filenamePrefix}")
         try:
             with open(filePath, encoding="UTF-8") as ifs:
                 jsonHandler.data = json.loads(ifs.read())
@@ -29,9 +33,11 @@ class jsonHandler:
                     break
                 outputDataLstItem[dataLst[j][0]] = dataLst[j][1]
             outputDataLst.append(outputDataLstItem)
+        if path.isdir(outputDir) == False:
+            mkdir(outputDir)
         for i in range(len(outputDataLst)):
             outputDataLstItem = outputDataLst[i]
-            with open(f"{outputDir}/{i}.json", "w+", encoding="UTF-8") as ofs:
+            with open(f"{outputDir}/{jsonHandler.filenamePrefix}-{i + 1}.json", "w+", encoding="UTF-8") as ofs:
                 ofs.write(json.dumps(outputDataLstItem, ensure_ascii=False))
                 print(f"Separate: Generating file {outputDir}/{i}.json ({i + 1}/{len(outputDataLst)})...")
         print(f"Successfully written to {outputDir}")
